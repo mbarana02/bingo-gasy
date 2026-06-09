@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BINGO GASY</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap');
+        body { font-family: 'Roboto', sans-serif; background-color: #0a0a0a; color: #ffffff; overflow-x: hidden; }
+        .wood-bg { background: linear-gradient(135deg, #8B6914 0%, #6B5310 50%, #4A3C0F 100%); }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        .player-avatar { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #fff; flex-shrink: 0; position: relative; }
+        .nav-item.active { color: #FF8C00; }
+        .nav-item { color: #666; transition: 0.3s; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(5px); z-index: 100; display: none; align-items: flex-end; justify-content: center; }
+        .modal-overlay.show { display: flex; }
+        .modal-content { background: #18181b; border-radius: 16px 16px 0 0; padding: 20px; width: 100%; max-width: 450px; max-height: 90vh; overflow-y: auto; border: 1px solid #3f3f46; }
+        .loading-spinner { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #FF8C00; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .pulse-anim { animation: pulse 2s infinite; }
+        .chat-message { background: #27272a; border-radius: 12px; padding: 10px; margin-bottom: 8px; }
+        .chat-message.admin-message { background: linear-gradient(135deg, #78350f, #92400e); border: 1px solid #f59e0b; }
+        .chat-avatar { width: 35px; height: 35px; border-radius: 50%; margin-right: 10px; }
+        
+        /* Deposit & UI Styles */
+        .deposit-header { background: linear-gradient(135deg, #0284c7, #0ea5e9); border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+        .info-blue { background: rgba(14, 165, 233, 0.15); border: 1px solid rgba(14, 165, 233, 0.4); border-radius: 10px; padding: 12px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px; }
+        .info-blue i { color: #38bdf8; margin-top: 2px; }
+        .info-blue .title { color: #38bdf8; font-size: 12px; font-weight: 700; }
+        .info-blue .desc { color: #9ca3af; font-size: 11px; }
+        .input-field { background: #27272a; border: 1px solid #3f3f46; border-radius: 10px; padding: 14px; color: #fff; width: 100%; font-size: 15px; transition: border-color 0.2s; }
+        .input-field:focus { outline: none; border-color: #0ea5e9; }
+        .btn-primary { background: linear-gradient(135deg, #0284c7, #0ea5e9); color: #fff; font-weight: 700; padding: 14px; border-radius: 10px; width: 100%; transition: all 0.2s; }
+        .btn-secondary { background: #27272a; color: #fff; font-weight: 700; padding: 14px; border-radius: 10px; width: 100%; border: 1px solid #3f3f46; transition: all 0.2s; }
+        .ussd-code { background: #27272a; border: 2px dashed #0ea5e9; border-radius: 12px; padding: 16px; text-align: center; font-family: monospace; font-size: 16px; font-weight: 900; color: #0ea5e9; letter-spacing: 1px; word-break: break-all; }
+        .copy-btn { background: #0ea5e9; color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; margin-top: 10px; width: 100%; transition: all 0.2s; }
+        
+        /* ADMIN STYLES */
+        .admin-badge { background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+        .admin-btn-secret { background: linear-gradient(135deg, #7c3aed, #a855f7); border: 2px solid #fbbf24; }
+        .player-row { background: #27272a; border-radius: 10px; padding: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+        .player-row img { width: 40px; height: 40px; border-radius: 50%; }
+        .player-info { flex: 1; }
+        .player-name { font-weight: 700; font-size: 13px; color: #fff; }
+        .player-phone { font-size: 11px; color: #9ca3af; }
+        .player-balance { font-weight: 900; color: #0ea5e9; font-size: 14px; }
+        .admin-tab { background: #27272a; color: #9ca3af; padding: 10px 16px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+        .admin-tab.active { background: #a855f7; color: #fff; }
+        .notification-badge { position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; font-size: 10px; font-weight: bold; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+        /* BINGO GAME STYLES */
+        .card-selection-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
+        .bingo-card-mini { background: #27272a; border: 2px solid #3f3f46; border-radius: 10px; padding: 8px; cursor: pointer; transition: all 0.2s; position: relative; }
+        .bingo-card-mini.selected { border-color: #10b981; background: rgba(16, 185, 129, 0.1); }
+        .bingo-card-mini.selected::after { content: '✓'; position: absolute; top: 5px; right: 5px; background: #10b981; color: white; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+        .mini-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; text-align: center; font-size: 10px; font-weight: bold; }
+        .mini-cell { background: rgba(255,255,255,0.05); padding: 4px 0; border-radius: 2px; }
+        .mini-cell.free { background: #f59e0b; color: #000; font-size: 14px; }
+        
+        .bingo-card-full { background: #18181b; border-radius: 12px; padding: 12px; margin-bottom: 12px; border: 1px solid #3f3f46; }
+        .bingo-header { display: grid; grid-template-columns: repeat(5, 1fr); text-align: center; font-weight: 900; font-size: 18px; margin-bottom: 8px; }
+        .bingo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+        .bingo-cell { aspect-ratio: 1; background: #27272a; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; position: relative; border: 1px solid #3f3f46; }
+        .bingo-cell.free-cell { background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; font-size: 24px; border-color: #fbbf24; }
+        
+        /* 3D Transparent Hit Ball */
+        .hit-ball-3d {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; border-radius: 8px;
+            box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.5), 0 4px 10px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 10;
+        }
+        .hit-ball-3d.purple { background: radial-gradient(circle at 30% 30%, rgba(168, 85, 247, 0.9), rgba(168, 85, 247, 0.3) 40%, rgba(168, 85, 247, 0.1) 100%); border-color: rgba(168, 85, 247, 0.8); }
+        .hit-ball-3d.blue { background: radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.9), rgba(59, 130, 246, 0.3) 40%, rgba(59, 130, 246, 0.1) 100%); border-color: rgba(59, 130, 246, 0.8); }
+        .hit-ball-3d.green { background: radial-gradient(circle at 30% 30%, rgba(34, 197, 94, 0.9), rgba(34, 197, 94, 0.3) 40%, rgba(34, 197, 94, 0.1) 100%); border-color: rgba(34, 197, 94, 0.8); }
+        .hit-ball-3d.red { background: radial-gradient(circle at 30% 30%, rgba(239, 68, 68, 0.9), rgba(239, 68, 68, 0.3) 40%, rgba(239, 68, 68, 0.1) 100%); border-color: rgba(239, 68, 68, 0.8); }
+        .hit-ball-3d.orange { background: radial-gradient(circle at 30% 30%, rgba(249, 115, 22, 0.9), rgba(249, 115, 22, 0.3) 40%, rgba(249, 115, 22, 0.1) 100%); border-color: rgba(249, 115, 22, 0.8); }
+
+        @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes bingoFlash { 0%, 100% { background-color: #18181b; } 50% { background-color: rgba(245, 158, 11, 0.3); } }
+        .bingo-winner-anim { animation: bingoFlash 0.5s ease-in-out 4; border-color: #f59e0b !important; }
+
+        .current-ball-display { width: 100px; height: 100px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #ff8c00, #cc5500); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 3rem; border: 4px solid #fff; box-shadow: 0 8px 30px rgba(255,140,0,0.6); margin: 0 auto; }
+        .ball-history { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0; }
+        .ball-history-item { width: 40px; height: 40px; border-radius: 50%; background: #27272a; border: 2px solid #3f3f46; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- LOADING SCREEN -->
+    <div id="loading-screen" class="fixed inset-0 z-[70] bg-black flex flex-col items-center justify-center">
+        <div class="loading-spinner mb-4"></div>
+        <p class="text-gray-400 text-sm">Connexion en cours...</p>
+    </div>
+
+    <!-- LANDING PAGE -->
+    <div id="landing-page" class="fixed inset-0 z-[60] bg-black flex-col items-center justify-center p-6 hidden">
+        <div class="text-center mb-8">
+            <div class="w-32 h-32 mx-auto bg-gradient-to-br from-green-500 to-yellow-500 rounded-full flex items-center justify-center text-black font-black text-6xl shadow-[0_0_30px_rgba(251,191,36,0.6)] mb-6 border-4 border-white">B</div>
+            <h1 class="text-3xl font-black italic text-white">BINGO <span class="text-yellow-400 text-xl">GASY</span></h1>
+        </div>
+        <div id="login-page" class="w-full max-w-sm">
+            <div class="bg-zinc-900 rounded-2xl p-6 border border-zinc-800 shadow-2xl">
+                <div class="space-y-4 mb-6">
+                    <input type="tel" id="login-telephone" placeholder="TÉLÉPHONE" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500">
+                    <input type="password" id="login-password" placeholder="MOT DE PASSE" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500">
+                </div>
+                <button onclick="handleLogin()" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-lg mb-3 active:scale-95 transition">CONNECTER</button>
+                <div id="login-error" class="mt-4 text-red-400 text-sm text-center hidden">Compte non trouvé</div>
+                <div class="mt-6 text-center">
+                    <span class="text-gray-400 text-sm">Vous n'avez pas de compte? </span>
+                    <button onclick="showRegisterPage()" class="text-blue-400 font-bold text-sm hover:text-blue-300 transition">S'INSCRIRE</button>
+                </div>
+            </div>
+        </div>
+        <div id="register-page" class="w-full max-w-sm hidden">
+            <div class="bg-zinc-900 rounded-2xl p-6 border border-zinc-800 shadow-2xl">
+                <div class="space-y-4 mb-6">
+                    <input type="text" id="reg-nom" placeholder="NOM" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 uppercase">
+                    <input type="text" id="reg-prenoms" placeholder="PRÉNOMS" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 uppercase">
+                    <input type="tel" id="reg-telephone" placeholder="TÉLÉPHONE" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500">
+                    <input type="number" id="reg-annee" placeholder="ANNÉE DE NAISSANCE" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500">
+                    <input type="password" id="reg-password" placeholder="MOT DE PASSE" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500">
+                </div>
+                <button onclick="handleRegister()" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-lg mb-3 active:scale-95 transition">S'INSCRIRE</button>
+                <div class="mt-6 text-center">
+                    <span class="text-gray-400 text-sm">Déjà un compte? </span>
+                    <button onclick="showLoginPage()" class="text-blue-400 font-bold text-sm hover:text-blue-300 transition">SE CONNECTER</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="app-container" class="hidden flex-col min-h-screen w-full bg-black">
+        <!-- HEADER -->
+        <header class="wood-bg p-4 sticky top-0 z-50">
+            <div class="flex justify-between items-center mb-4">
+                <h1 class="text-2xl font-black text-white italic">BINGO <span class="text-yellow-400">GASY</span></h1>
+                <div class="bg-red-600 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                    <i class="fas fa-wallet text-white"></i>
+                    <span class="font-bold text-white" id="header-balance">0 MGA</span>
+                </div>
+            </div>
+            <div class="flex justify-between items-center bg-black/30 rounded-lg p-3">
+                <div class="flex items-center gap-2">
+                    <img src="https://ui-avatars.com/api/?name=User&background=random" id="header-avatar" class="w-10 h-10 rounded-full border-2 border-white">
+                    <span class="font-bold text-white" id="header-name">ZARA</span>
+                    <span id="header-admin-badge" class="admin-badge hidden">ADMIN</span>
+                </div>
+                <div class="flex gap-3">
+                    <div class="bg-black/50 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                        <i class="fas fa-users text-white"></i>
+                        <span class="font-bold text-white" id="player-count">0</span>
+                    </div>
+                    <div class="bg-orange-600 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                        <i class="fas fa-trophy text-white"></i>
+                        <span class="font-bold text-white" id="jackpot-display">0 MGA</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- GAME AREA -->
+        <div id="page-jeu" class="flex-1 overflow-y-auto hide-scroll pb-20">
+            <div class="p-4">
+                <!-- Card Selection Phase -->
+                <div id="card-selection-phase" class="hidden">
+                    <h3 class="text-lg font-bold text-white mb-2">Choisissez vos cartes (2 à 4)</h3>
+                    <p class="text-gray-400 text-sm mb-4">Prix: 100 MGA / carte. Total: <span id="required-balance" class="text-orange-400 font-bold">0</span> MGA</p>
+                    <div id="card-selection-grid" class="card-selection-grid"></div>
+                    <button onclick="buySelectedCards()" id="btn-buy-cards" class="btn-primary mb-3" disabled>Acheter les cartes sélectionnées</button>
+                </div>
+
+                <!-- Active Game Phase -->
+                <div id="active-game-phase" class="hidden">
+                    <div class="text-center mb-6">
+                        <p class="text-gray-400 text-sm mb-2">Boule actuelle</p>
+                        <div id="current-ball" class="current-ball-display">--</div>
+                    </div>
+                    <div class="mb-6">
+                        <p class="text-gray-400 text-sm mb-2 text-center">Historique</p>
+                        <div class="ball-history" id="balls-history"></div>
+                    </div>
+                    <div id="player-bought-cards-container" class="mb-6">
+                        <h3 class="text-sm font-bold text-gray-400 mb-3">VOS CARTES EN JEU</h3>
+                        <div id="active-cards-list"></div>
+                    </div>
+                </div>
+
+                <!-- Round End / Pause Phase -->
+                <div id="round-pause-phase" class="hidden text-center py-10">
+                    <i class="fas fa-hourglass-half text-5xl text-orange-500 mb-4 pulse-anim"></i>
+                    <p class="text-white text-lg font-bold">Fin de la manche</p>
+                    <p class="text-gray-400 text-sm mb-4">Nouvelles cartes dans <span id="pause-countdown" class="text-orange-400 font-bold text-xl">10</span> secondes...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- PROFIL PAGE -->
+        <div id="page-profil" class="hidden flex-1 overflow-y-auto hide-scroll pb-20 bg-gradient-to-b from-indigo-900 via-purple-900 to-pink-900">
+            <div class="p-4">
+                <div class="flex items-center gap-3 mb-6">
+                    <button onclick="showPageFromProfil('accueil')" class="text-white p-2"><i class="fas fa-arrow-left text-xl"></i></button>
+                    <h2 class="text-xl font-bold text-white">Profil</h2>
+                </div>
+                <div class="flex justify-center mb-6">
+                    <img src="https://ui-avatars.com/api/?name=User&background=random" id="profil-avatar" class="w-24 h-24 rounded-full border-4 border-white shadow-lg">
+                </div>
+                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-4 mb-4">
+                    <div class="text-center mb-4">
+                        <h3 class="text-2xl font-bold text-white" id="profil-name">ZARA</h3>
+                        <p class="text-gray-300 text-sm" id="profil-phone">📱 Non défini</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div class="bg-white/10 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-pink-400" id="profil-balance">0</div>
+                            <div class="text-xs text-gray-300">MGA</div>
+                        </div>
+                        <div class="bg-white/10 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-cyan-400" id="profil-games">0</div>
+                            <div class="text-xs text-gray-300">Parties</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="openDepositModal()" class="bg-green-600 hover:bg-green-500 text-white rounded-lg py-2 px-3 text-sm font-bold transition active:scale-95">
+                            <i class="fas fa-plus-circle mb-1 block text-lg"></i>Dépôt
+                        </button>
+                        <button class="bg-red-600 hover:bg-red-500 text-white rounded-lg py-2 px-3 text-sm font-bold transition active:scale-95">
+                            <i class="fas fa-minus-circle mb-1 block text-lg"></i>Retrait
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- ADMIN SECRET BUTTON -->
+                <div id="admin-secret-section" class="hidden mb-4">
+                    <button onclick="openAdminPanel()" class="w-full admin-btn-secret rounded-xl p-4 flex items-center gap-3 hover:opacity-90 transition border-2 border-yellow-400 relative">
+                        <div class="bg-yellow-500 w-10 h-10 rounded-full flex items-center justify-center"><i class="fas fa-crown text-black"></i></div>
+                        <div class="flex-1 text-left">
+                            <div class="text-white font-bold flex items-center">Administration<span class="admin-badge">ADMIN</span></div>
+                            <div class="text-xs text-yellow-200">Gérer les joueurs et les dépôts</div>
+                        </div>
+                        <div id="admin-deposit-badge" class="notification-badge hidden">0</div>
+                        <i class="fas fa-chevron-right text-yellow-200"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-3">
+                    <button onclick="logout()" class="w-full bg-red-500/20 backdrop-blur-lg rounded-xl p-4 flex items-center gap-3 hover:bg-red-500/30 transition border border-red-500/30">
+                        <div class="bg-red-500 w-10 h-10 rounded-full flex items-center justify-center"><i class="fas fa-sign-out-alt text-white"></i></div>
+                        <div class="flex-1 text-left"><div class="text-white font-bold">Déconnexion</div></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CHAT BUTTON -->
+        <button onclick="openChat()" class="fixed bottom-20 right-4 w-14 h-14 bg-teal-600 rounded-full flex items-center justify-center shadow-lg z-40">
+            <i class="fas fa-comment text-white text-xl"></i>
+        </button>
+
+        <!-- BOTTOM NAV -->
+        <nav class="fixed bottom-0 w-full bg-black border-t border-gray-800 flex justify-around items-center py-3 z-50">
+            <div class="nav-item active flex flex-col items-center gap-1 cursor-pointer" onclick="showPage('accueil', event)"><i class="fas fa-home text-lg"></i><span class="text-[10px] font-medium">Accueil</span></div>
+            <div class="nav-item flex flex-col items-center gap-1 cursor-pointer" onclick="showPage('jeu', event)"><i class="fas fa-gamepad text-lg"></i><span class="text-[10px] font-medium">Jeu</span></div>
+            <div class="nav-item flex flex-col items-center gap-1 cursor-pointer" onclick="showPage('profil', event)"><i class="fas fa-user text-lg"></i><span class="text-[10px] font-medium">Profil</span></div>
+        </nav>
+    </div>
+
+    <!-- ADMIN PANEL MODAL -->
+    <div id="admin-modal" class="modal-overlay">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, #7c3aed, #a855f7);"><i class="fas fa-crown text-white"></i></div>
+                    <div><h3 class="text-white font-bold text-lg flex items-center">Administration<span class="admin-badge">ADMIN</span></h3><p class="text-gray-400 text-xs">Panneau de contrôle</p></div>
+                </div>
+                <button onclick="closeAdminPanel()" class="text-gray-400 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="flex gap-2 mb-4">
+                <div class="admin-tab active" onclick="switchAdminTab('joueurs', event)">Joueurs</div>
+                <div class="admin-tab" onclick="switchAdminTab('deposits', event)">Dépôts <span id="admin-tab-deposit-count" class="bg-red-500 text-white text-[10px] px-1.5 rounded-full hidden">0</span></div>
+                <div class="admin-tab" onclick="switchAdminTab('chat', event)">Chat</div>
+            </div>
+
+            <div id="admin-tab-joueurs" class="admin-tab-content">
+                <div class="mb-3"><input type="text" id="admin-search-player" class="input-field" placeholder="🔍 Rechercher..." oninput="renderAdminPlayers()"></div>
+                <div id="admin-players-list" class="space-y-2 max-h-[50vh] overflow-y-auto hide-scroll"></div>
+            </div>
+
+            <div id="admin-tab-deposits" class="admin-tab-content hidden">
+                <div class="info-blue mb-3"><i class="fas fa-info-circle"></i><div><p class="title">Demandes de dépôt</p><p class="desc">Validez les virements pour créditer les joueurs.</p></div></div>
+                <div id="admin-deposits-list" class="space-y-2 max-h-[50vh] overflow-y-auto hide-scroll">
+                    <p class="text-center text-gray-500 text-xs py-4">Aucune demande en attente</p>
+                </div>
+            </div>
+
+            <div id="admin-tab-chat" class="admin-tab-content hidden">
+                <textarea id="admin-chat-message" class="input-field mb-3" rows="4" placeholder="Message officiel pour tous les joueurs..."></textarea>
+                <button onclick="sendAdminMessage()" class="btn-primary mb-3"><i class="fas fa-bullhorn mr-2"></i>Envoyer à tous</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT BALANCE MODAL -->
+    <div id="edit-balance-modal" class="modal-overlay">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-white font-bold text-lg">Modifier le solde</h3>
+                <button onclick="closeEditBalanceModal()" class="text-gray-400 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="bg-zinc-800 rounded-xl p-4 mb-4">
+                <div class="detail-row"><span class="detail-label" style="color:#9ca3af; font-size:13px;">Solde actuel:</span><span class="detail-value highlight" style="color:#0ea5e9; font-size:22px; font-weight:700;" id="edit-current-balance">0 MGA</span></div>
+            </div>
+            <div class="grid grid-cols-3 gap-2 mb-3">
+                <button onclick="setBalanceAction('add')" class="amount-btn active" id="btn-action-add" style="background:#27272a; border:1px solid #3f3f46; border-radius:8px; padding:10px; color:#fff; font-weight:700; font-size:13px;">➕ Ajouter</button>
+                <button onclick="setBalanceAction('remove')" class="amount-btn" id="btn-action-remove" style="background:#27272a; border:1px solid #3f3f46; border-radius:8px; padding:10px; color:#fff; font-weight:700; font-size:13px;">➖ Retirer</button>
+                <button onclick="setBalanceAction('set')" class="amount-btn" id="btn-action-set" style="background:#27272a; border:1px solid #3f3f46; border-radius:8px; padding:10px; color:#fff; font-weight:700; font-size:13px;">🎯 Définir</button>
+            </div>
+            <input type="number" id="edit-balance-amount" class="input-field mb-4" placeholder="Montant (MGA)">
+            <button onclick="applyBalanceChange()" class="btn-primary mb-3">Appliquer</button>
+            <button onclick="closeEditBalanceModal()" class="btn-secondary">Annuler</button>
+        </div>
+    </div>
+
+    <!-- WINNER MODAL -->
+    <div id="winner-modal" class="modal-overlay">
+        <div class="modal-content text-center p-6" onclick="event.stopPropagation()">
+            <div class="text-6xl mb-4 animate-bounce">🎉</div>
+            <h2 class="text-4xl font-black text-yellow-400 mb-2 italic" id="win-title">BINGO!</h2>
+            <p class="text-white text-lg mb-4" id="winner-name-display">Vous avez gagné!</p>
+            <p class="text-orange-400 font-bold text-2xl mb-6" id="win-prize-text">+0 MGA</p>
+            <button onclick="closeWinnerModal()" class="bg-yellow-500 text-black font-bold py-3 px-8 rounded-full w-full active:scale-95 transition">OK - Terminé</button>
+        </div>
+    </div>
+
+    <!-- GLOBAL NOTIFICATION TOAST -->
+    <div id="global-toast" class="fixed top-20 left-1/2 transform -translate-x-1/2 bg-zinc-800 border border-yellow-500 text-white px-6 py-3 rounded-lg shadow-2xl z-[200] hidden flex items-center gap-3">
+        <i class="fas fa-bullhorn text-yellow-400"></i>
+        <span id="global-toast-message" class="font-bold text-sm"></span>
+    </div>
+
+    <!-- DEPOSIT MODAL -->
+    <div id="deposit-modal" class="modal-overlay">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-white font-bold text-lg">Faire un dépôt</h3>
+                <button onclick="closeDepositModal()" class="text-gray-400 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div id="deposit-step-1">
+                <input type="number" id="deposit-amount" class="input-field mb-4" placeholder="Montant (Min 500 MGA)" oninput="updateDepositAmount()">
+                <button onclick="goToDepositStep(2)" class="btn-primary mb-3" id="btn-continue-amount" disabled>Continuer</button>
+            </div>
+            <div id="deposit-step-2" class="hidden">
+                <p class="text-gray-400 text-sm mb-4">Le code est prêt. Appuyez sur "Copier et Composer" pour ouvrir votre clavier téléphonique avec le code déjà inscrit.</p>
+                <div class="ussd-code" id="ussd-code-display">#111*1*2*1*0349171444*0#</div>
+                <button onclick="triggerDialer()" class="copy-btn mb-3"><i class="fas fa-phone mr-2"></i>Copier et Composer</button>
+                <div class="info-blue"><i class="fas fa-info-circle"></i><div><p class="title">En attente de validation</p><p class="desc">Une fois le transfert effectué, l'admin sera notifié et créditera votre compte.</p></div></div>
+                <button onclick="confirmDepositRequest()" class="btn-primary mb-3">J'ai effectué le virement</button>
+                <button onclick="closeDepositModal()" class="btn-secondary">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHAT MODAL -->
+    <div id="chat-modal" class="modal-overlay">
+        <div class="modal-content h-[70vh] flex flex-col" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-3">
+                <h3 class="text-lg font-bold text-white">Chat</h3>
+                <button onclick="closeChat()" class="text-gray-400 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div id="chat-messages" class="flex-1 overflow-y-auto hide-scroll mb-3 space-y-2"></div>
+            <div class="flex gap-2">
+                <input type="text" id="chat-input" placeholder="Écrire un message..." class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500">
+                <button onclick="sendMessage()" class="bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONSTANTS & STATE ---
+        const STORAGE_KEYS = { USERS: 'bingo_gasy_users', SESSION: 'bingo_gasy_session', CHAT: 'bingo_chat', DEPOSITS: 'bingo_deposits', GAME: 'bingo_game_state' };
+        const ADMIN_EMAIL = 'zararandriamalala@gmail.com';
+        const ADMIN_PHONE = '0349171444';
+        const CARD_PRICE = 100;
+        
+        let usersDB = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS)) || [];
+        let currentPlayer = { name: 'ZARA', img: 'User', telephone: '', balance: 0, email: '' };
+        let balance = 0;
+        let depositAmount = 0;
+        let editingPlayer = null;
+        let balanceAction = 'add';
+        let countdownInterval;
+        let gameInterval;
+        
+        let gameState = JSON.parse(localStorage.getItem(STORAGE_KEYS.GAME)) || {
+            round: 1,
+            drawnNumbers: [],
+            jackpot: 0,
+            isPlaying: false
+        };
+
+        // Generate 400 unique Bingo Cards
+        const bingoCardsPool = [];
+        const colors = ['purple', 'blue', 'green', 'red', 'orange'];
+        
+        function generateBingoCards() {
+            for (let i = 1; i <= 400; i++) {
+                let card = { id: i, color: colors[i % 5], numbers: [] };
+                const getNums = (min, max, count) => {
+                    let nums = new Set();
+                    while(nums.size < count) nums.add(Math.floor(Math.random() * (max - min + 1)) + min);
+                    return Array.from(nums);
+                };
+                let b = getNums(1, 15, 5);
+                let i = getNums(16, 30, 5);
+                let n = getNums(31, 45, 4); n.splice(2, 0, '★'); // Center is star
+                let g = getNums(46, 60, 5);
+                let o = getNums(61, 75, 5);
+                
+                for(let row=0; row<5; row++) {
+                    card.numbers.push([b[row], i[row], n[row], g[row], o[row]]);
+                }
+                bingoCardsPool.push(card);
+            }
+        }
+        generateBingoCards();
+
+        // --- AUTH & INIT ---
+        function isAdmin() {
+            return currentPlayer.email === ADMIN_EMAIL || currentPlayer.telephone === ADMIN_PHONE;
+        }
+
+        window.onload = function() {
+            checkAutoLogin();
+            renderChat();
+            updateGlobalGameState();
+        };
+
+        function checkAutoLogin() {
+            const session = JSON.parse(localStorage.getItem(STORAGE_KEYS.SESSION));
+            if (session && session.telephone) {
+                const user = usersDB.find(u => u.telephone === session.telephone);
+                if (user) {
+                    currentPlayer = { name: user.prenoms, img: user.picture || user.prenoms, telephone: user.telephone, balance: user.balance || 0, email: user.email || '' };
+                    balance = currentPlayer.balance;
+                    setTimeout(() => { document.getElementById('loading-screen').classList.add('hidden'); finishLogin(); }, 800);
+                    return;
+                }
+            }
+            setTimeout(() => {
+                document.getElementById('loading-screen').classList.add('hidden');
+                document.getElementById('landing-page').classList.remove('hidden');
+                document.getElementById('landing-page').classList.add('flex');
+            }, 500);
+        }
+
+        function handleLogin() {
+            const telephone = document.getElementById('login-telephone').value.trim();
+            const password = document.getElementById('login-password').value;
+            const user = usersDB.find(u => u.telephone === telephone && u.password === password);
+            if (user) {
+                currentPlayer = { name: user.prenoms, img: user.picture || user.prenoms, telephone: user.telephone, balance: user.balance || 0, email: user.email || '' };
+                balance = currentPlayer.balance;
+                localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(user));
+                finishLogin();
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+                setTimeout(() => document.getElementById('login-error').classList.add('hidden'), 3000);
+            }
+        }
+
+        function handleRegister() {
+            const nom = document.getElementById('reg-nom').value.trim().toUpperCase();
+            const prenoms = document.getElementById('reg-prenoms').value.trim().toUpperCase();
+            const telephone = document.getElementById('reg-telephone').value.trim();
+            const annee = document.getElementById('reg-annee').value;
+            const password = document.getElementById('reg-password').value;
+            if (!nom || !prenoms || !telephone || !annee || !password) return alert('Veuillez remplir tous les champs');
+            if (usersDB.find(u => u.telephone === telephone)) return alert('Ce numéro est déjà utilisé.');
+            const newUser = { nom, prenoms, telephone, annee, password, balance: 5000 }; // Bonus départ
+            usersDB.push(newUser);
+            localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(usersDB));
+            alert('✅ Inscription réussie! Solde de départ: 5000 MGA');
+            showLoginPage();
+            document.getElementById('login-telephone').value = telephone;
+        }
+
+        function showLoginPage() { document.getElementById('login-page').classList.remove('hidden'); document.getElementById('register-page').classList.add('hidden'); }
+        function showRegisterPage() { document.getElementById('login-page').classList.add('hidden'); document.getElementById('register-page').classList.remove('hidden'); }
+        function logout() { if (confirm('Déconnecter?')) { localStorage.removeItem(STORAGE_KEYS.SESSION); location.reload(); } }
+
+        function finishLogin() {
+            document.getElementById('header-name').innerText = currentPlayer.name.toUpperCase();
+            document.getElementById('header-avatar').src = currentPlayer.img.startsWith('http') ? currentPlayer.img : `https://ui-avatars.com/api/?name=${currentPlayer.img}&background=random`;
+            if (isAdmin()) document.getElementById('header-admin-badge').classList.remove('hidden');
+            updateBalanceUI();
+            showScreen('page-jeu');
+            initGameForPlayer();
+        }
+
+        function updateBalanceUI() { 
+            document.getElementById('header-balance').innerText = balance.toLocaleString() + ' MGA'; 
+            document.getElementById('profil-balance').innerText = balance.toLocaleString();
+        }
+
+        function showScreen(id) {
+            ['landing-page', 'app-container'].forEach(s => { document.getElementById(s).classList.add('hidden'); document.getElementById(s).classList.remove('flex'); });
+            document.getElementById('app-container').classList.remove('hidden');
+            document.getElementById('app-container').classList.add('flex');
+            document.getElementById('page-jeu').classList.remove('hidden');
+            document.getElementById('page-profil').classList.add('hidden');
+        }
+
+        function showPage(page, event) {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            if (event) event.currentTarget.classList.add('active');
+            document.getElementById('page-jeu').classList.add('hidden');
+            document.getElementById('page-profil').classList.add('hidden');
+            if (page === 'accueil' || page === 'jeu') {
+                document.getElementById('page-jeu').classList.remove('hidden');
+                initGameForPlayer();
+            } else if (page === 'profil') {
+                document.getElementById('page-profil').classList.remove('hidden');
+                document.getElementById('profil-name').innerText = currentPlayer.name.toUpperCase();
+                document.getElementById('profil-phone').innerText = '📱 ' + currentPlayer.telephone;
+                if (isAdmin()) {
+                    document.getElementById('admin-secret-section').classList.remove('hidden');
+                    updateDepositBadge();
+                }
+            }
+        }
+        function showPageFromProfil(page) { showPage(page, null); }
+
+        // --- GAME LOGIC ---
+        let playerSelectedCards = [];
+        let playerBoughtCards = [];
+
+        function initGameForPlayer() {
+            if (isAdmin()) {
+                document.getElementById('card-selection-phase').innerHTML = '<p class="text-center text-gray-400 py-10">Les administrateurs ne peuvent pas jouer.</p>';
+                document.getElementById('card-selection-phase').classList.remove('hidden');
+                document.getElementById('active-game-phase').classList.add('hidden');
+                return;
+            }
+
+            const roundKey = `round_${gameState.round}_player_${currentPlayer.telephone}`;
+            const bought = JSON.parse(localStorage.getItem(roundKey)) || [];
+            
+            if (bought.length > 0) {
+                playerBoughtCards = bought;
+                showActiveGamePhase();
+            } else {
+                showCardSelectionPhase();
+            }
+            updatePlayerCount();
+        }
+
+        function showCardSelectionPhase() {
+            document.getElementById('card-selection-phase').classList.remove('hidden');
+            document.getElementById('active-game-phase').classList.add('hidden');
+            document.getElementById('round-pause-phase').classList.add('hidden');
+            
+            let available = [...bingoCardsPool].sort(() => 0.5 - Math.random()).slice(0, 8);
+            const grid = document.getElementById('card-selection-grid');
+            grid.innerHTML = '';
+            playerSelectedCards = [];
+
+            available.forEach(card => {
+                const div = document.createElement('div');
+                div.className = 'bingo-card-mini';
+                div.dataset.id = card.id;
+                div.onclick = () => toggleCardSelection(div, card.id);
+                
+                let html = `<div class="mini-grid">`;
+                for(let r=0; r<5; r++) {
+                    for(let c=0; c<5; c++) {
+                        const val = card.numbers[r][c];
+                        html += `<div class="mini-cell ${val === '★' ? 'free' : ''}">${val}</div>`;
+                    }
+                }
+                html += `</div>`;
+                div.innerHTML = html;
+                grid.appendChild(div);
+            });
+            updateSelectionUI();
+        }
+
+        function toggleCardSelection(el, cardId) {
+            if (el.classList.contains('selected')) {
+                el.classList.remove('selected');
+                playerSelectedCards = playerSelectedCards.filter(id => id !== cardId);
+            } else {
+                if (playerSelectedCards.length >= 4) return alert('Maximum 4 cartes!');
+                el.classList.add('selected');
+                playerSelectedCards.push(cardId);
+            }
+            updateSelectionUI();
+        }
+
+        function updateSelectionUI() {
+            const count = playerSelectedCards.length;
+            const cost = count * CARD_PRICE;
+            document.getElementById('required-balance').innerText = cost;
+            const btn = document.getElementById('btn-buy-cards');
+            if (count >= 2 && count <= 4 && balance >= cost) {
+                btn.disabled = false;
+                btn.innerText = `Acheter (${cost} MGA)`;
+            } else {
+                btn.disabled = true;
+                btn.innerText = count < 2 ? 'Sélectionnez 2 à 4 cartes' : 'Solde insuffisant';
+            }
+        }
+
+        function buySelectedCards() {
+            const cost = playerSelectedCards.length * CARD_PRICE;
+            if (balance < cost) return alert('Solde insuffisant!');
+            
+            balance -= cost;
+            updateBalanceUI();
+            
+            const user = usersDB.find(u => u.telephone === currentPlayer.telephone);
+            if (user) {
+                user.balance = balance;
+                localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(usersDB));
+                localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(user));
+            }
+
+            playerBoughtCards = playerSelectedCards.map(id => bingoCardsPool.find(c => c.id === id));
+            localStorage.setItem(`round_${gameState.round}_player_${currentPlayer.telephone}`, JSON.stringify(playerBoughtCards));
+            
+            // Jackpot: 75% of total card sales
+            gameState.jackpot += (cost * 0.75);
+            saveGameState();
+            updatePlayerCount();
+
+            showActiveGamePhase();
+        }
+
+        function showActiveGamePhase() {
+            document.getElementById('card-selection-phase').classList.add('hidden');
+            document.getElementById('active-game-phase').classList.remove('hidden');
+            document.getElementById('round-pause-phase').classList.add('hidden');
+            
+            renderBoughtCards();
+            if (!gameState.isPlaying && gameState.drawnNumbers.length === 0) {
+                startTirage();
+            }
+        }
+
+        function renderBoughtCards() {
+            const container = document.getElementById('active-cards-list');
+            container.innerHTML = '';
+            playerBoughtCards.forEach(card => {
+                const div = document.createElement('div');
+                div.className = `bingo-card-full`;
+                div.id = `card-full-${card.id}`;
+                
+                let html = `<div class="bingo-header">
+                    <span class="text-purple-400">B</span><span class="text-blue-400">I</span><span class="text-green-400">N</span><span class="text-red-400">G</span><span class="text-orange-400">O</span>
+                </div><div class="bingo-grid">`;
+                
+                for(let r=0; r<5; r++) {
+                    for(let c=0; c<5; c++) {
+                        const val = card.numbers[r][c];
+                        const isFree = val === '★';
+                        const cellId = `cell-${card.id}-${r}-${c}`;
+                        html += `<div class="bingo-cell ${isFree ? 'free-cell' : ''}" id="${cellId}" data-value="${val}">${val}</div>`;
+                    }
+                }
+                html += `</div>`;
+                div.innerHTML = html;
+                container.appendChild(div);
+            });
+            checkHits();
+        }
+
+        function startTirage() {
+            gameState.isPlaying = true;
+            saveGameState();
+            
+            gameInterval = setInterval(() => {
+                if (!gameState.isPlaying) return;
+                
+                let newNum;
+                do {
+                    newNum = Math.floor(Math.random() * 75) + 1;
+                } while (gameState.drawnNumbers.includes(newNum));
+                
+                gameState.drawnNumbers.push(newNum);
+                saveGameState();
+                
+                document.getElementById('current-ball').innerText = newNum;
+                const hist = document.getElementById('balls-history');
+                const ball = document.createElement('div');
+                ball.className = 'ball-history-item';
+                ball.innerText = newNum;
+                hist.prepend(ball);
+                
+                checkHits();
+                checkWinConditions();
+                
+            }, 3000); // 3 secondes entre chaque boule
+        }
+
+        function checkHits() {
+            playerBoughtCards.forEach(card => {
+                for(let r=0; r<5; r++) {
+                    for(let c=0; c<5; c++) {
+                        const val = card.numbers[r][c];
+                        if (val !== '★' && gameState.drawnNumbers.includes(val)) {
+                            const cell = document.getElementById(`cell-${card.id}-${r}-${c}`);
+                            if (cell && !cell.querySelector('.hit-ball-3d')) {
+                                const hit = document.createElement('div');
+                                hit.className = `hit-ball-3d ${card.color}`;
+                                cell.appendChild(hit);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function checkWinConditions() {
+            playerBoughtCards.forEach(card => {
+                let isBingo = false;
+                let markedCount = 0;
+                
+                // Check rows and cols (5 cells aligned, center '★' counts as marked)
+                for (let i = 0; i < 5; i++) {
+                    let rowMarked = 0, colMarked = 0;
+                    for (let j = 0; j < 5; j++) {
+                        let valRow = card.numbers[i][j];
+                        if (valRow === '★' || gameState.drawnNumbers.includes(valRow)) rowMarked++;
+                        
+                        let valCol = card.numbers[j][i];
+                        if (valCol === '★' || gameState.drawnNumbers.includes(valCol)) colMarked++;
+                    }
+                    if (rowMarked === 5 || colMarked === 5) isBingo = true;
+                }
+                
+                // Count total marked for Plein (24 numbers + 1 star = 25)
+                for(let r=0; r<5; r++) {
+                    for(let c=0; c<5; c++) {
+                        let val = card.numbers[r][c];
+                        if (val === '★' || gameState.drawnNumbers.includes(val)) markedCount++;
+                    }
+                }
+
+                if (isBingo && !card.hasWonBingo) {
+                    card.hasWonBingo = true;
+                    triggerBingoWin(card);
+                }
+                
+                if (markedCount === 25 && !card.hasWonPlein) {
+                    card.hasWonPlein = true;
+                    triggerPleinWin(card);
+                }
+            });
+        }
+
+        function triggerBingoWin(card) {
+            clearInterval(gameInterval);
+            gameState.isPlaying = false;
+            saveGameState();
+            
+            playWinSound();
+            document.getElementById(`card-full-${card.id}`).classList.add('bingo-winner-anim');
+            
+            document.getElementById('win-title').innerText = "BINGO!";
+            document.getElementById('winner-name-display').innerText = `Félicitations ${currentPlayer.name}!`;
+            document.getElementById('win-prize-text').innerText = `+${Math.floor(gameState.jackpot * 0.3)} MGA`;
+            document.getElementById('winner-modal').classList.add('show');
+            
+            showGlobalToast(`Quelqu'un a obtenu un BINGO!`);
+            
+            setTimeout(() => startRoundPause(), 5000);
+        }
+
+        function triggerPleinWin(card) {
+            clearInterval(gameInterval);
+            gameState.isPlaying = false; // Arrêt immédiat
+            saveGameState();
+            
+            playWinSound();
+            document.getElementById(`card-full-${card.id}`).classList.add('bingo-winner-anim');
+            
+            document.getElementById('win-title').innerText = "CARTON PLEIN!";
+            document.getElementById('winner-name-display').innerText = `Incroyable ${currentPlayer.name}!`;
+            document.getElementById('win-prize-text').innerText = `+${Math.floor(gameState.jackpot)} MGA`;
+            document.getElementById('winner-modal').classList.add('show');
+            
+            showGlobalToast(`${currentPlayer.name} a fait CARTON PLEIN!`);
+        }
+
+        function startRoundPause() {
+            document.getElementById('active-game-phase').classList.add('hidden');
+            document.getElementById('round-pause-phase').classList.remove('hidden');
+            
+            let seconds = 10;
+            document.getElementById('pause-countdown').innerText = seconds;
+            
+            countdownInterval = setInterval(() => {
+                seconds--;
+                document.getElementById('pause-countdown').innerText = seconds;
+                if (seconds <= 0) {
+                    clearInterval(countdownInterval);
+                    gameState.round++;
+                    gameState.drawnNumbers = [];
+                    gameState.isPlaying = false;
+                    saveGameState();
+                    
+                    playerBoughtCards = [];
+                    localStorage.removeItem(`round_${gameState.round-1}_player_${currentPlayer.telephone}`);
+                    
+                    document.getElementById('balls-history').innerHTML = '';
+                    document.getElementById('current-ball').innerText = '--';
+                    initGameForPlayer(); // Affiche 8 nouvelles cartes
+                }
+            }, 1000);
+        }
+
+        function updatePlayerCount() {
+            let count = 0;
+            usersDB.forEach(u => {
+                // Exclure l'admin du comptage
+                if (u.telephone !== ADMIN_PHONE && u.email !== ADMIN_EMAIL) {
+                    const bought = JSON.parse(localStorage.getItem(`round_${gameState.round}_player_${u.telephone}`)) || [];
+                    if (bought.length > 0) count++;
+                }
+            });
+            document.getElementById('player-count').innerText = count;
+            document.getElementById('jackpot-display').innerText = Math.floor(gameState.jackpot).toLocaleString() + ' MGA';
+        }
+
+        function saveGameState() {
+            localStorage.setItem(STORAGE_KEYS.GAME, JSON.stringify(gameState));
+        }
+        
+        function updateGlobalGameState() {
+            const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.GAME));
+            if (saved) {
+                gameState = saved;
+                document.getElementById('jackpot-display').innerText = Math.floor(gameState.jackpot).toLocaleString() + ' MGA';
+            }
+        }
+
+        function playWinSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(1046.5, audioCtx.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 2.0); // 2 secondes
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 2.0);
+            } catch(e) { console.log("Audio non supporté"); }
+        }
+
+        function showGlobalToast(msg) {
+            const toast = document.getElementById('global-toast');
+            document.getElementById('global-toast-message').innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2000);
+        }
+
+        function closeWinnerModal() {
+            document.getElementById('winner-modal').classList.remove('show');
+        }
+
+        // --- ADMIN FUNCTIONS ---
+        function openAdminPanel() {
+            if (!isAdmin()) return;
+            document.getElementById('admin-modal').classList.add('show');
+            switchAdminTab('joueurs');
+            renderAdminPlayers();
+            renderAdminDeposits();
+        }
+        function closeAdminPanel() { document.getElementById('admin-modal').classList.remove('show'); }
+
+        function switchAdminTab(tab, event) {
+            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            if (event && event.target) event.target.classList.add('active');
+            else document.querySelector(`.admin-tab`).classList.add('active');
+            document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById(`admin-tab-${tab}`).classList.remove('hidden');
+            if (tab === 'joueurs') renderAdminPlayers();
+            if (tab === 'deposits') renderAdminDeposits();
+        }
+
+        function renderAdminPlayers() {
+            const search = document.getElementById('admin-search-player').value.toLowerCase();
+            const filtered = usersDB.filter(u => {
+                if (u.telephone === ADMIN_PHONE || u.email === ADMIN_EMAIL) return false;
+                return (u.prenoms + ' ' + u.nom).toLowerCase().includes(search) || u.telephone.includes(search);
+            });
+            const container = document.getElementById('admin-players-list');
+            container.innerHTML = filtered.map(u => {
+                const img = u.picture || u.prenoms;
+                return `
+                    <div class="player-row">
+                        <img src="${img.startsWith('http') ? img : `https://ui-avatars.com/api/?name=${img}&background=random`}">
+                        <div class="player-info">
+                            <div class="player-name">${u.prenoms.toUpperCase()}</div>
+                            <div class="player-phone">${u.telephone}</div>
+                            <div class="player-balance">${(u.balance || 0).toLocaleString()} MGA</div>
+                        </div>
+                        <button onclick="openEditBalanceModal('${u.telephone}')" class="bg-purple-600 hover:bg-purple-500 text-white px-3 py-2 rounded-lg text-xs font-bold"><i class="fas fa-edit"></i></button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderAdminDeposits() {
+            const deposits = JSON.parse(localStorage.getItem(STORAGE_KEYS.DEPOSITS)) || [];
+            const container = document.getElementById('admin-deposits-list');
+            if (deposits.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 text-xs py-4">Aucune demande en attente</p>';
+                return;
+            }
+            container.innerHTML = deposits.map((d, index) => `
+                <div class="player-row">
+                    <div class="player-info">
+                        <div class="player-name">${d.playerName}</div>
+                        <div class="player-phone">${d.telephone}</div>
+                        <div class="player-balance text-yellow-400">${d.amount} MGA</div>
+                    </div>
+                    <button onclick="approveDeposit(${index})" class="bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-bold">Valider</button>
+                </div>
+            `).join('');
+        }
+
+        function approveDeposit(index) {
+            let deposits = JSON.parse(localStorage.getItem(STORAGE_KEYS.DEPOSITS)) || [];
+            const dep = deposits[index];
+            
+            const user = usersDB.find(u => u.telephone === dep.telephone);
+            if (user) {
+                user.balance = (user.balance || 0) + dep.amount;
+                localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(usersDB));
+                if (currentPlayer.telephone === dep.telephone) {
+                    balance = user.balance;
+                    updateBalanceUI();
+                }
+            }
+            
+            deposits.splice(index, 1);
+            localStorage.setItem(STORAGE_KEYS.DEPOSITS, JSON.stringify(deposits));
+            renderAdminDeposits();
+            updateDepositBadge();
+            alert('Dépôt validé et crédité avec succès!');
+        }
+
+        function updateDepositBadge() {
+            const deposits = JSON.parse(localStorage.getItem(STORAGE_KEYS.DEPOSITS)) || [];
+            const badge = document.getElementById('admin-deposit-badge');
+            const tabBadge = document.getElementById('admin-tab-deposit-count');
+            if (deposits.length > 0) {
+                badge.innerText = deposits.length;
+                badge.classList.remove('hidden');
+                tabBadge.innerText = deposits.length;
+                tabBadge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+                tabBadge.classList.add('hidden');
+            }
+        }
+
+        function openEditBalanceModal(telephone) {
+            editingPlayer = usersDB.find(u => u.telephone === telephone);
+            document.getElementById('edit-current-balance').innerText = (editingPlayer.balance || 0).toLocaleString() + ' MGA';
+            document.getElementById('edit-balance-amount').value = '';
+            setBalanceAction('add');
+            document.getElementById('edit-balance-modal').classList.add('show');
+        }
+        function closeEditBalanceModal() { document.getElementById('edit-balance-modal').classList.remove('show'); editingPlayer = null; }
+        function setBalanceAction(action) {
+            balanceAction = action;
+            document.querySelectorAll('#edit-balance-modal .amount-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-action-${action}`).classList.add('active');
+        }
+        function applyBalanceChange() {
+            const amount = parseInt(document.getElementById('edit-balance-amount').value);
+            if (!amount || amount <= 0) return alert('Montant invalide');
+            let newBalance = editingPlayer.balance || 0;
+            if (balanceAction === 'add') newBalance += amount;
+            else if (balanceAction === 'remove') newBalance = Math.max(0, newBalance - amount);
+            else newBalance = amount;
+            
+            editingPlayer.balance = newBalance;
+            localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(usersDB));
+            if (currentPlayer.telephone === editingPlayer.telephone) {
+                balance = newBalance;
+                updateBalanceUI();
+            }
+            closeEditBalanceModal();
+            renderAdminPlayers();
+            alert('Solde mis à jour!');
+        }
+
+        function sendAdminMessage() {
+            const text = document.getElementById('admin-chat-message').value.trim();
+            if (!text) return;
+            const messages = JSON.parse(localStorage.getItem(STORAGE_KEYS.CHAT)) || [];
+            messages.push({ name: 'ADMIN', avatar: 'https://ui-avatars.com/api/?name=ADMIN&background=f59e0b&color=000&bold=true', text: text, isAdmin: true, time: new Date().toISOString() });
+            localStorage.setItem(STORAGE_KEYS.CHAT, JSON.stringify(messages));
+            document.getElementById('admin-chat-message').value = '';
+            renderChat();
+            alert('Message envoyé à tous les joueurs!');
+        }
+
+        // --- DEPOSIT & CHAT ---
+        function openDepositModal() {
+            document.getElementById('deposit-modal').classList.add('show');
+            document.getElementById('deposit-step-1').classList.remove('hidden');
+            document.getElementById('deposit-step-2').classList.add('hidden');
+            document.getElementById('deposit-amount').value = '';
+            document.getElementById('btn-continue-amount').disabled = true;
+        }
+        function closeDepositModal() { document.getElementById('deposit-modal').classList.remove('show'); }
+        function updateDepositAmount() {
+            const val = parseInt(document.getElementById('deposit-amount').value);
+            document.getElementById('btn-continue-amount').disabled = !(val >= 500);
+        }
+        function goToDepositStep(step) {
+            if (step === 2) {
+                depositAmount = parseInt(document.getElementById('deposit-amount').value);
+                document.getElementById('ussd-code-display').innerText = `#111*1*2*1*${ADMIN_PHONE}*${depositAmount}#`;
+                document.getElementById('deposit-step-1').classList.add('hidden');
+                document.getElementById('deposit-step-2').classList.remove('hidden');
+            }
+        }
+        
+        // FIX AUTO-DIAL: encodeURIComponent transforme les '#' en '%23' pour que le dialer les reconnaisse
+        function triggerDialer() {
+            const code = document.getElementById('ussd-code-display').innerText;
+            const encodedCode = encodeURIComponent(code);
+            navigator.clipboard.writeText(code); // Copie aussi dans le presse-papier par sécurité
+            window.location.href = `tel:${encodedCode}`;
+        }
+
+        function confirmDepositRequest() {
+            const deposits = JSON.parse(localStorage.getItem(STORAGE_KEYS.DEPOSITS)) || [];
+            deposits.push({
+                playerName: currentPlayer.name,
+                telephone: currentPlayer.telephone,
+                amount: depositAmount,
+                time: new Date().toISOString()
+            });
+            localStorage.setItem(STORAGE_KEYS.DEPOSITS, JSON.stringify(deposits));
+            closeDepositModal();
+            alert('✅ Demande envoyée à l\'admin. Un message de confirmation apparaîtra dans votre chat une fois validé.');
+            
+            // Simuler une notif admin si on est en mode test local
+            updateDepositBadge();
+        }
+
+        function openChat() { document.getElementById('chat-modal').classList.add('show'); renderChat(); }
+        function closeChat() { document.getElementById('chat-modal').classList.remove('show'); }
+        function renderChat() {
+            const messages = JSON.parse(localStorage.getItem(STORAGE_KEYS.CHAT)) || [];
+            const container = document.getElementById('chat-messages');
+            container.innerHTML = messages.map(msg => `
+                <div class="chat-message ${msg.isAdmin ? 'admin-message' : ''}">
+                    <div class="flex items-start">
+                        <img src="${msg.avatar}" class="chat-avatar">
+                        <div class="flex-1">
+                            <div class="text-xs text-gray-400 mb-1 flex items-center gap-1">
+                                ${msg.name} ${msg.isAdmin ? '<span class="admin-badge">ADMIN</span>' : ''}
+                            </div>
+                            <div class="text-sm ${msg.isAdmin ? 'text-yellow-100 font-semibold' : 'text-white'}">${msg.text}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            container.scrollTop = container.scrollHeight;
+        }
+        function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (text) {
+                const messages = JSON.parse(localStorage.getItem(STORAGE_KEYS.CHAT)) || [];
+                messages.push({
+                    name: currentPlayer.name,
+                    avatar: currentPlayer.img.startsWith('http') ? currentPlayer.img : `https://ui-avatars.com/api/?name=${currentPlayer.img}&background=random`,
+                    text: text,
+                    isAdmin: false,
+                    time: new Date().toISOString()
+                });
+                localStorage.setItem(STORAGE_KEYS.CHAT, JSON.stringify(messages));
+                input.value = '';
+                renderChat();
+            }
+        }
+    </script>
+</body>
+</html>
